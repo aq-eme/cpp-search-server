@@ -23,16 +23,9 @@ public:
     template <typename DocumentPredicate>
     std::vector<Document> FindTopDocuments(const std::string& raw_query, DocumentPredicate document_predicate) const;
 
-    std::vector<Document> FindTopDocuments(const std::string& raw_query, DocumentStatus status) const {
-        return FindTopDocuments(
-                raw_query, [status](int document_id, DocumentStatus document_status, int rating) {
-                    return document_status == status;
-                });
-    }
-    std::vector<Document> FindTopDocuments(const std::string& raw_query) const {
-        return FindTopDocuments(raw_query, DocumentStatus::ACTUAL);
-    }
- 
+    std::vector<Document> FindTopDocuments(const std::string& raw_query, DocumentStatus status) const;
+    std::vector<Document> FindTopDocuments(const std::string& raw_query) const;
+
     int GetDocumentCount() const;
     int GetDocumentId(int index) const;
     std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
