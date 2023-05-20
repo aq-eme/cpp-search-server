@@ -1,6 +1,7 @@
 #pragma once
 #include "paginator.h"
 
+
 enum class DocumentStatus {
     ACTUAL,
     IRRELEVANT,
@@ -18,3 +19,5 @@ struct Document {
     double relevance = 0.0;
     int rating = 0;
 };
+
+std::ostream& operator<<(std::ostream& out, const Document& document);
