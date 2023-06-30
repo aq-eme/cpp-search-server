@@ -27,9 +27,11 @@ public:
     std::vector<Document> FindTopDocuments(const std::string& raw_query) const;
 
     int GetDocumentCount() const;
-    int GetDocumentId(int index) const;
+    const std::map<std::string, double>& GetWordFrequencies(int document_id) ;
     std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
-
+    std::vector<int>::iterator begin();
+    std::vector<int>::iterator end();
+    void RemoveDocument(int document_id);
 private:
     struct DocumentData {
         int rating;
@@ -41,11 +43,14 @@ private:
     std::map<std::string, std::map<int, double>> word_to_document_freqs_;
     std::map<int, DocumentData> documents_;
     std::vector<int> document_ids_;
+    std::map<int, std::map<std::string, double>> id_to_document_freqs_;
 
     bool IsStopWord(const std::string& word) const;
     static bool IsValidWord(const std::string& word);
     std::vector<std::string> SplitIntoWordsNoStop(const std::string& text) const;
     static int ComputeAverageRating(const std::vector<int>& ratings);
+
+
 
     struct QueryWord {
         std::string data;
