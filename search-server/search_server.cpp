@@ -13,7 +13,7 @@ void  SearchServer::AddDocument(int document_id, const std::string& document, Do
         id_to_document_freqs_[document_id][word] += inv_word_count;
     }
     documents_.emplace(document_id, DocumentData{ComputeAverageRating(ratings), status});
-    document_ids_.push_back(document_id);
+    document_ids_.insert(document_id);
 }
 
 void SearchServer::RemoveDocument(int document_id) {
@@ -24,8 +24,8 @@ void SearchServer::RemoveDocument(int document_id) {
         document_ids_.erase(it);
     }
 
-    for (auto [key, value] : word_to_document_freqs_) {
-        word_to_document_freqs_[key].erase(document_id);
+    for (auto& word_freqs : word_to_document_freqs_) {
+        word_freqs.second.erase(document_id);
     }
 
     if (id_to_document_freqs_.count(document_id)) {
@@ -38,11 +38,11 @@ int SearchServer::GetDocumentCount() const {
     return documents_.size();
 }
 
-std::vector<int>::iterator SearchServer::begin() {
+std::set<int>::iterator SearchServer::begin() {
     return document_ids_.begin();
 }
 
-std::vector<int>::iterator SearchServer::end() {
+std::set<int>::iterator SearchServer::end() {
     return document_ids_.end();
 }
 
