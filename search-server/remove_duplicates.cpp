@@ -7,12 +7,12 @@
 void RemoveDuplicates(SearchServer& search_server) {
     using namespace std::literals;
     std::set<int> duplicate_document_id;
-    std::set<std::set<std::string>> document_words;
+    std::set<std::set<std::string_view>> document_words;
 
     for (auto document_id : search_server)
     {
         const auto& document_to_word_freqs_ = search_server.GetWordFrequencies(document_id);
-        std::set<std::string> words;
+        std::set<std::string_view> words;
 
         for (const auto& [word, freq] : document_to_word_freqs_) {
             words.insert(word);
