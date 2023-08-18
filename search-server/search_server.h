@@ -56,9 +56,12 @@ public:
     const std::set<int>::const_iterator begin() const noexcept;
     const std::set<int>::const_iterator end() const noexcept;
 
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(std::string_view raw_query, int document_id) const;
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const std::execution::sequenced_policy& policy, std::string_view raw_query, int document_id) const;
-    std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const std::execution::parallel_policy& policy, std::string_view raw_query, int document_id) const;
+    template <typename MatchDocumentResult>
+    MatchDocumentResult MatchDocument(std::string_view raw_query, int document_id) const;
+    template <typename MatchDocumentResult>
+    MatchDocumentResult MatchDocument(const std::execution::sequenced_policy& policy, std::string_view raw_query, int document_id) const;
+    template <typename MatchDocumentResult>
+    MatchDocumentResult MatchDocument(const std::execution::parallel_policy& policy, std::string_view raw_query, int document_id) const;
 
     const std::map<std::string_view, double>& GetWordFrequencies(int document_id) const;
 
@@ -100,8 +103,7 @@ private:
         std::vector<std::string_view> minus_words;
     };
 
-    Query ParseQuery(std::string_view text) const;
-    Query ParseQueryParallel(std::string_view text) const;
+    Query ParseQuery(std::string_view text, bool stop_words) const;
 
     template<typename DocumentPredicate>
     std::vector<Document> FindAllDocuments(std::string_view raw_query, DocumentPredicate document_predicate) const;
@@ -113,6 +115,17 @@ private:
     std::vector<Document> FindAllDocuments(const std::execution::parallel_policy& policy, std::string_view raw_query, DocumentPredicate document_predicate) const;
 
     double ComputeWordInverseDocumentFreq(std::string_view word ) const;
+
+    template <typename MatchDocumentResult>
+    std::tuple<std::vector<std::string_view>, DocumentStatus>
+    MatchDocument(std::string_view raw_query, int document_id) const;
+    template <typename MatchDocumentResult>
+    std::tuple<std::vector<std::string_view>, DocumentStatus>
+    MatchDocument(const std::execution::sequenced_policy& policy, std::string_view raw_query, int document_id) const;
+    template <typename MatchDocumentResult>
+    std::tuple<std::vector<std::string_view>, DocumentStatus>
+    MatchDocument(const std::execution::parallel_policy& policy, std::string_view raw_query, int document_id) const;
+
 };
 
 template <typename StringContainer>
@@ -165,7 +178,7 @@ std::vector<Document> SearchServer::FindTopDocuments(ExecutionPolicy&& policy, s
 
 template<typename DocumentPredicate>
 std::vector<Document> SearchServer::FindAllDocuments(std::string_view raw_query, DocumentPredicate predicate) const {
-    const Query query = ParseQuery(raw_query);
+    const Query query = ParseQuery(raw_query, true);
     std::map<int, double> document_to_relevance;
     for (auto word : query.plus_words) {
         if (word_to_document_freqs_.count(word) == 0) {
@@ -197,7 +210,7 @@ std::vector<Document> SearchServer::FindAllDocuments(std::string_view raw_query,
 
 template<typename DocumentPredicate>
 std::vector<Document> SearchServer::FindAllDocuments(const std::execution::sequenced_policy& policy, std::string_view raw_query, DocumentPredicate predicate) const {
-    const Query query = ParseQuery(raw_query);
+    const Query query = ParseQuery(raw_query, true);
     std::map<int, double> document_to_relevance;
     for (auto word : query.plus_words) {
         if (word_to_document_freqs_.count(word) == 0) {
@@ -230,7 +243,7 @@ std::vector<Document> SearchServer::FindAllDocuments(const std::execution::seque
 template<typename DocumentPredicate>
 std::vector<Document> SearchServer::FindAllDocuments(const std::execution::parallel_policy& policy, std::string_view raw_query, DocumentPredicate document_predicate) const {
     ConcurrentMap<int, double> document_to_relevance(16);
-    const auto query = ParseQuery(raw_query);
+    const auto query = ParseQuery(raw_query, true);
 
     std::for_each(policy,
                   query.minus_words.begin(), query.minus_words.end(),

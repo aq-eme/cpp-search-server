@@ -18,9 +18,10 @@ void SearchServer::AddDocument(int document_id, std::string_view document, Docum
 
     words = SplitIntoWordsNoStop(documents_.at(document_id).text_);
 
+    const double inv_word_count = 1.0 / words.size();
     for (auto word : words) {
-        word_to_document_freqs_[word][document_id] += 1.0 / words.size();
-        document_to_word_freqs_[document_id][word] += 1.0 / words.size();
+        word_to_document_freqs_[word][document_id] += inv_word_count;
+        document_to_word_freqs_[document_id][word] += inv_word_count;
     }
 
     document_ids_.emplace(document_id);
@@ -45,9 +46,9 @@ const std::set<int>::const_iterator SearchServer::begin() const noexcept {
 const std::set<int>::const_iterator SearchServer::end() const noexcept {
     return document_ids_.end();
 }
-
+template <typename MatchDocumentResult>
 std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(std::string_view raw_query, int document_id) const {
-    const Query query = ParseQuery(raw_query);
+    const Query query = ParseQuery(raw_query, document_id);
 
     std::vector<std::string_view> matched_words;
     for (const std::string_view word : query.minus_words) {
@@ -70,17 +71,17 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
 
     return { matched_words, documents_.at(document_id).status };
 }
-
+template <typename MatchDocumentResult>
 std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(const std::execution::sequenced_policy& policy, std::string_view raw_query, int document_id) const {
-    return MatchDocument(raw_query, document_id);
+    return MatchDocumentResult(policy, raw_query, document_id);
 }
-
+template <typename MatchDocumentResult>
 std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(const std::execution::parallel_policy& policy, std::string_view raw_query, int document_id) const {
     if ((document_id < 0) || (documents_.count(document_id) == 0)) {
         throw std::invalid_argument("document_id out of range"s);
     }
 
-    const Query& query = ParseQueryParallel(raw_query);
+    const Query& query = ParseQuery(raw_query, document_id);
     const auto& word_freqs = document_to_word_freqs_.at(document_id);
 
     if (std::any_of(query.minus_words.begin(),
@@ -119,12 +120,9 @@ const std::map<std::string_view, double>& SearchServer::GetWordFrequencies(int d
 
 void SearchServer::RemoveDocument(int document_id) {
     if (document_to_word_freqs_.count(document_id)) {
-        std::map<std::string_view, double> search_element = document_to_word_freqs_[document_id];
-
-        for (auto [key_string, value_double] : search_element) {
+    for (const auto& [key_string, value_double] : document_to_word_freqs_[document_id]) {
             word_to_document_freqs_[key_string].erase(document_id);
         }
-
         document_to_word_freqs_.erase(document_id);
         documents_.erase(document_id);
         document_ids_.erase(document_id);
@@ -184,7 +182,7 @@ SearchServer::QueryWord SearchServer::ParseQueryWord(std::string_view text) cons
     return { text, is_minus, IsStopWord(text) };
 }
 
-SearchServer::Query SearchServer::ParseQuery(std::string_view text) const {
+SearchServer::Query SearchServer::ParseQuery(std::string_view text, bool stop_words) const {
     Query result;
 
     for (auto word : SplitIntoWordsView(text)) {
@@ -211,23 +209,6 @@ SearchServer::Query SearchServer::ParseQuery(std::string_view text) const {
     newSize = last_plus - result.plus_words.begin();
     result.plus_words.resize(newSize);
 
-    return result;
-}
-
-SearchServer::Query SearchServer::ParseQueryParallel(std::string_view text) const {
-    Query result;
-
-    for (auto word : SplitIntoWordsView(text)) {
-        const QueryWord query_word(ParseQueryWord(word));
-        if (!query_word.is_stop) {
-            if (query_word.is_minus) {
-                result.minus_words.push_back(query_word.data);
-            }
-            else {
-                result.plus_words.push_back(query_word.data);
-            }
-        }
-    }
     return result;
 }
 
