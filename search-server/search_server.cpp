@@ -129,6 +129,28 @@ void SearchServer::RemoveDocument(int document_id) {
     }
 }
 
+void SearchServer::RemoveDocument(const std::execution::sequenced_policy&,
+                                  int document_id) {
+    RemoveDocument(document_id);
+}
+
+void SearchServer::RemoveDocument(const std::execution::parallel_policy& policy, int document_id) {
+    if (document_to_word_freqs_.count(document_id)) {
+        const std::map<std::string_view, double>& word_freqs = document_to_word_freqs_.at(document_id);
+        std::vector<std::string_view*> words(word_freqs.size());
+
+
+
+        std::for_each(policy, words.begin(), words.end(), [this, document_id](std::string_view* item) {
+            word_to_document_freqs_.at(*item).erase(document_id);
+        });
+
+        document_to_word_freqs_.erase(document_id);
+        documents_.erase(document_id);
+        document_ids_.erase(document_id);
+    }
+}
+
 bool SearchServer::IsStopWord(std::string_view word) const {
     return stop_words_.count(word) > 0;
 }

@@ -65,9 +65,9 @@ public:
 
     const std::map<std::string_view, double>& GetWordFrequencies(int document_id) const;
 
-    template <typename ExecutionPolicy>
-    void RemoveDocument(ExecutionPolicy&& policy, int document_id);
     void RemoveDocument(int document_id);
+    void RemoveDocument(const std::execution::sequenced_policy&, int document_id);
+    void RemoveDocument(const std::execution::parallel_policy&, int document_id);
 
 private:
     struct DocumentData {
@@ -277,27 +277,4 @@ std::vector<Document> SearchServer::FindAllDocuments(const std::execution::paral
         matched_documents.push_back({ document_id, relevance, documents_.at(document_id).rating });
     }
     return matched_documents;
-}
-
-template <typename ExecutionPolicy>
-void SearchServer::RemoveDocument(ExecutionPolicy&& policy, int document_id) {
-    if (document_to_word_freqs_.count(document_id)) {
-        const std::map<std::string_view, double>& word_freqs = document_to_word_freqs_.at(document_id);
-        std::vector<std::string_view*> words(word_freqs.size());
-
-        std::transform(
-                policy,
-                word_freqs.begin(), word_freqs.end(),
-                words.begin(),
-                [](const auto& item) { return &item.first; }
-        );
-
-        std::for_each(policy, words.begin(), words.end(), [this, document_id](std::string_view* item) {
-            word_to_document_freqs_.at(*item).erase(document_id);
-        });
-
-        document_to_word_freqs_.erase(document_id);
-        documents_.erase(document_id);
-        document_ids_.erase(document_id);
-    }
 }
