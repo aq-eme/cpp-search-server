@@ -278,3 +278,4 @@ std::vector<Document> SearchServer::FindAllDocuments(const std::execution::paral
     }
     return matched_documents;
 }
+

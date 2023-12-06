@@ -25,3 +25,4 @@ std::vector<Document> ProcessQueriesJoined(
 
     return documents;
 }
+

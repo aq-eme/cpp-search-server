@@ -31,3 +31,4 @@ private:
     const std::string id_;
     const Clock::time_point start_time_ = Clock::now();
 };
+

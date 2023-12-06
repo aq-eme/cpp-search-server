@@ -237,3 +237,4 @@ SearchServer::Query SearchServer::ParseQuery(std::string_view text, bool stop_wo
 double SearchServer::ComputeWordInverseDocumentFreq(std::string_view word ) const {
     return std::log( GetDocumentCount() * 1.0 / word_to_document_freqs_.at( word ).size() );
 }
+

@@ -32,3 +32,4 @@ void RemoveDuplicates(SearchServer& search_server) {
         search_server.RemoveDocument(document_id);
     }
 }
+
